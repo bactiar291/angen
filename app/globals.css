@@ -215,17 +215,33 @@ button {
 .hero-copy h1 {
   max-width: 900px;
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(3.6rem, 8vw, 8rem);
-  line-height: 0.9;
+  font-size: clamp(2.7rem, 5.8vw, 5.8rem);
+  line-height: 0.96;
   letter-spacing: 0.03em;
+  animation: textRise 0.7s cubic-bezier(.2,.8,.2,1) both;
 }
 
 .hero-copy p {
   max-width: 720px;
-  margin-top: 20px;
+  margin-top: 18px;
   color: var(--muted);
-  font-size: clamp(0.95rem, 1.4vw, 1.12rem);
+  font-size: clamp(0.9rem, 1.15vw, 1rem);
   line-height: 1.8;
+  animation: textRise 0.7s cubic-bezier(.2,.8,.2,1) 0.12s both;
+}
+
+.eyebrow {
+  animation: textTrack 0.85s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes textRise {
+  from { opacity: 0; transform: translateY(18px) rotateX(-8deg); }
+  to { opacity: 1; transform: translateY(0) rotateX(0); }
+}
+
+@keyframes textTrack {
+  from { opacity: 0; letter-spacing: 0.34em; transform: translateY(10px); }
+  to { opacity: 1; letter-spacing: 0.22em; transform: translateY(0); }
 }
 
 .source-card {
@@ -249,7 +265,7 @@ button {
   margin-top: 8px;
   color: var(--gold2);
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 2.2rem;
+  font-size: 1.65rem;
   letter-spacing: 0.08em;
 }
 
@@ -320,6 +336,7 @@ button {
 .category-btn,
 .source-btn,
 .preset-row button,
+.orientation-btn,
 .action-row button,
 .generate-btn,
 .panel-head button {
@@ -368,6 +385,8 @@ button {
 .source-btn:hover,
 .source-btn.active,
 .preset-row button:hover,
+.orientation-btn:hover,
+.orientation-btn.active,
 .action-row button:hover,
 .panel-head button:hover {
   transform: translateY(-2px) rotateX(2deg);
@@ -415,6 +434,39 @@ button {
 .preset-row button {
   padding: 10px 8px;
   font-size: 0.72rem;
+}
+
+.orientation-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.orientation-btn {
+  padding: 14px;
+  text-align: left;
+}
+
+.orientation-btn strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+}
+
+.orientation-btn span,
+.orientation-btn em {
+  display: block;
+  margin-top: 5px;
+  color: var(--faint);
+  font-size: 0.74rem;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.orientation-btn em {
+  color: var(--gold);
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .toggle-line,
@@ -471,9 +523,10 @@ button {
 
 .stage-head h2 {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
   letter-spacing: 0.08em;
   line-height: 1;
+  animation: textRise 0.55s cubic-bezier(.2,.8,.2,1) both;
 }
 
 .chips {
@@ -737,12 +790,11 @@ button {
   }
 
   .hero-copy h1 {
-    font-size: clamp(3rem, 16vw, 4.5rem);
+    font-size: clamp(2.45rem, 12vw, 3.55rem);
   }
 
   .category-grid,
-  .dimension-row,
-  .preset-row,
+  .orientation-grid,
   .action-row {
     grid-template-columns: 1fr;
   }

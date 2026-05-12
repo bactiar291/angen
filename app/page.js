@@ -5,110 +5,102 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 const CATEGORIES = {
   tanaman: {
     label: "Tanaman",
-    short: "Plant",
+    short: "Tanam",
     query: "plants,botanical,leaves,flower,garden",
     tone: "#5fc98a",
   },
   alam: {
     label: "Alam",
-    short: "Nature",
+    short: "Alam",
     query: "nature,mountain,forest,river,landscape",
     tone: "#72b7f2",
   },
   pantai: {
     label: "Pantai",
-    short: "Beach",
+    short: "Pantai",
     query: "beach,ocean,coast,tropical,sea",
     tone: "#66d9d9",
   },
   kota: {
     label: "Kota",
-    short: "Urban",
+    short: "Kota",
     query: "city,street,skyline,urban,night",
     tone: "#c9a84c",
   },
   arsitektur: {
     label: "Arsitektur",
-    short: "Architecture",
+    short: "Bangun",
     query: "architecture,building,interior,modern,facade",
     tone: "#d7b98a",
   },
   teknologi: {
     label: "Teknologi",
-    short: "Tech",
+    short: "Tekno",
     query: "technology,computer,circuit,server,workspace",
     tone: "#8aa7ff",
   },
   makanan: {
     label: "Makanan",
-    short: "Food",
+    short: "Makan",
     query: "food,restaurant,dessert,coffee,cooking",
     tone: "#f1a24f",
   },
   hewan: {
     label: "Hewan",
-    short: "Animal",
+    short: "Hewan",
     query: "animal,wildlife,bird,cat,dog",
     tone: "#d7a05f",
   },
   orang: {
     label: "Orang",
-    short: "People",
+    short: "Orang",
     query: "people,portrait,person,profile,human",
     tone: "#d48abf",
   },
   travel: {
-    label: "Travel",
-    short: "Travel",
+    label: "Perjalanan",
+    short: "Jalan",
     query: "travel,landmark,road,adventure,tourism",
     tone: "#f0d080",
   },
   bisnis: {
     label: "Bisnis",
-    short: "Business",
+    short: "Bisnis",
     query: "business,office,meeting,laptop,team",
     tone: "#b7c1d6",
   },
   abstrak: {
     label: "Abstrak",
-    short: "Abstract",
+    short: "Abstrak",
     query: "abstract,texture,pattern,color,art",
     tone: "#b98cff",
   },
   acak: {
     label: "Acak",
-    short: "Random",
+    short: "Acak",
     query: "",
     tone: "#c9a84c",
   },
 };
 
 const SOURCES = {
-  smart: {
-    label: "Smart Match",
-    desc: "Kategori spesifik pakai image semantic. Acak/abstrak boleh editorial.",
-  },
   semantic: {
-    label: "Flickr Semantic",
-    desc: "No API key. Query cocok kategori, bagus untuk tanaman/hewan/makanan.",
+    label: "Flickr Semantik",
+    desc: "Cocok untuk kategori spesifik seperti tanaman, hewan, makanan, dan kota.",
   },
   picsum: {
     label: "Picsum Editorial",
-    desc: "No API key. Aesthetic random, cocok wallpaper/acak.",
+    desc: "Gambar acak bergaya editorial untuk variasi visual.",
   },
   poster: {
-    label: "Poster Placeholder",
-    desc: "No API key. Fallback stabil berbasis teks dan warna.",
+    label: "Poster Otomatis",
+    desc: "Fallback cepat berbasis teks dan warna kategori.",
   },
 };
 
-const PRESETS = [
-  { name: "Desktop", w: 1920, h: 1080 },
-  { name: "Laptop", w: 1440, h: 900 },
-  { name: "Square", w: 1080, h: 1080 },
-  { name: "Story", w: 1080, h: 1920 },
-  { name: "Banner", w: 1600, h: 600 },
-  { name: "Card", w: 1200, h: 800 },
+const ORIENTATIONS = [
+  { id: "horizontal", label: "Horizontal", desc: "Cocok untuk laptop, banner, dan desktop.", w: 1440, h: 900 },
+  { id: "vertical", label: "Vertikal", desc: "Cocok untuk HP, story, poster, dan konten mobile.", w: 900, h: 1440 },
 ];
 
 const QUERY_MAP = {
@@ -167,16 +159,18 @@ function resolveQuery(category, customQuery) {
   return CATEGORIES[category]?.query || CATEGORIES.alam.query;
 }
 
-function resolveSource(sourceMode, category, seed) {
-  if (sourceMode !== "smart") return sourceMode;
+function resolveSource(category, seed) {
   if (category === "acak" || category === "abstrak") {
-    return seed % 3 === 0 ? "picsum" : "semantic";
+    if (seed % 5 === 0) return "poster";
+    if (seed % 2 === 0) return "picsum";
+    return "semantic";
   }
+  if (seed % 9 === 0) return "poster";
   return "semantic";
 }
 
-function buildUrl({ sourceMode, category, customQuery, width, height, seed, gray, blur }) {
-  const source = resolveSource(sourceMode, category, seed);
+function buildUrl({ category, customQuery, width, height, seed, gray, blur }) {
+  const source = resolveSource(category, seed);
   const w = clampSize(width, 1280);
   const h = clampSize(height, 720);
   const query = resolveQuery(category, customQuery);
@@ -203,10 +197,8 @@ function fmt(n) {
 
 export default function Page() {
   const [category, setCategory] = useState("tanaman");
-  const [sourceMode, setSourceMode] = useState("smart");
   const [customQuery, setCustomQuery] = useState("");
-  const [width, setWidth] = useState(1440);
-  const [height, setHeight] = useState(900);
+  const [orientation, setOrientation] = useState("horizontal");
   const [gray, setGray] = useState(false);
   const [blur, setBlur] = useState(0);
   const [active, setActive] = useState(null);
@@ -218,6 +210,9 @@ export default function Page() {
   const toastRef = useRef(null);
 
   const categoryInfo = CATEGORIES[category] || CATEGORIES.tanaman;
+  const orientationInfo = ORIENTATIONS.find((item) => item.id === orientation) || ORIENTATIONS[0];
+  const width = orientationInfo.w;
+  const height = orientationInfo.h;
   const resolvedQuery = useMemo(
     () => resolveQuery(category, customQuery),
     [category, customQuery],
@@ -231,7 +226,6 @@ export default function Page() {
 
   const makeItem = useCallback((seed) => {
     const url = buildUrl({
-      sourceMode,
       category,
       customQuery,
       width,
@@ -241,16 +235,16 @@ export default function Page() {
       blur,
     });
     return {
-      id: `${seed}-${category}-${sourceMode}-${width}x${height}`,
+      id: `${seed}-${category}-${orientation}-${width}x${height}`,
       url,
       seed,
       category,
-      source: resolveSource(sourceMode, category, seed),
+      source: resolveSource(category, seed),
       query: resolveQuery(category, customQuery),
       width,
       height,
     };
-  }, [blur, category, customQuery, gray, height, sourceMode, width]);
+  }, [blur, category, customQuery, gray, height, orientation, width]);
 
   const generate = useCallback((count = 8) => {
     const next = Array.from({ length: count }, () => makeItem(randomSeed()));
@@ -297,7 +291,7 @@ export default function Page() {
       link.download = `angen-${slugify(categoryInfo.label)}-${active.seed}-${active.width}x${active.height}.jpg`;
       link.click();
       URL.revokeObjectURL(link.href);
-      showToast("Download dimulai");
+      showToast("Unduhan dimulai");
     } catch {
       window.open(active.url, "_blank", "noopener,noreferrer");
       showToast("Dibuka di tab baru");
@@ -322,43 +316,43 @@ export default function Page() {
           <span className="brand-mark">AG</span>
           <div>
             <strong>ANGEN</strong>
-            <span>Free Image Studio</span>
+            <span>Studio Gambar Gratis</span>
           </div>
         </div>
         <div className="topbar-meta">
-          <span>No API key</span>
-          <span>Smart semantic source</span>
-          <span>{fmt(total)} generated</span>
+          <span>Tanpa API key</span>
+          <span>Sumber otomatis</span>
+          <span>{fmt(total)} dibuat</span>
         </div>
       </header>
 
       <main className="studio">
         <section className="hero-panel">
           <div className="hero-copy">
-            <span className="eyebrow">Semantic random image generator</span>
-            <h1>Gambar acak, tapi tetap sesuai maumu.</h1>
+            <span className="eyebrow">Generator gambar gratis otomatis</span>
+            <h1>Gambar acak yang tetap sesuai pilihanmu.</h1>
             <p>
-              Pilih kategori atau ketik kata sendiri. Untuk tanaman, hasilnya
-              tanaman. Untuk makanan, hasilnya makanan. Source gratis dirotasi
-              tanpa API key.
+              Pilih kategori atau ketik kata sendiri. Sistem akan mencari gambar
+              yang masih satu tema, lalu memilih sumber gratis secara otomatis.
+              Cocok untuk pemula, HP, dan laptop.
             </p>
           </div>
           <div className="source-card">
-            <span>Active Source</span>
-            <strong>{SOURCES[sourceMode].label}</strong>
-            <p>{SOURCES[sourceMode].desc}</p>
+            <span>Sumber aktif</span>
+            <strong>Rotasi Otomatis</strong>
+            <p>Flickr Semantik, Picsum, dan Poster digabung jadi satu alur. Kamu cukup pilih tema.</p>
           </div>
         </section>
 
         <section className="workspace">
           <aside className="control">
             <div className="control-block">
-              <span className="block-label">Intent</span>
+              <span className="block-label">Kata kunci</span>
               <input
                 className="query-input"
                 value={customQuery}
                 onChange={(event) => setCustomQuery(event.target.value)}
-                placeholder="contoh: tanaman, bunga, laptop, pantai"
+                placeholder="Contoh: tanaman, bunga, laptop, pantai"
               />
             </div>
 
@@ -383,52 +377,26 @@ export default function Page() {
             </div>
 
             <div className="control-block">
-              <span className="block-label">Free Source</span>
-              <div className="source-grid">
-                {Object.entries(SOURCES).map(([key, item]) => (
+              <span className="block-label">Bentuk gambar</span>
+              <div className="orientation-grid">
+                {ORIENTATIONS.map((item) => (
                   <button
-                    key={key}
-                    className={`source-btn${sourceMode === key ? " active" : ""}`}
-                    onClick={() => setSourceMode(key)}
+                    key={item.id}
+                    className={`orientation-btn${orientation === item.id ? " active" : ""}`}
+                    onClick={() => setOrientation(item.id)}
                   >
                     <strong>{item.label}</strong>
                     <span>{item.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="control-block">
-              <span className="block-label">Dimensi</span>
-              <div className="dimension-row">
-                <label>
-                  <span>Width</span>
-                  <input value={width} onChange={(event) => setWidth(clampSize(event.target.value, 1440))} />
-                </label>
-                <label>
-                  <span>Height</span>
-                  <input value={height} onChange={(event) => setHeight(clampSize(event.target.value, 900))} />
-                </label>
-              </div>
-              <div className="preset-row">
-                {PRESETS.map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => {
-                      setWidth(preset.w);
-                      setHeight(preset.h);
-                    }}
-                  >
-                    {preset.name}
+                    <em>{item.w} x {item.h}</em>
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="control-block fx-block">
-              <span className="block-label">Picsum FX</span>
+              <span className="block-label">Efek tambahan</span>
               <label className="toggle-line">
-                <span>Grayscale</span>
+                <span>Hitam putih</span>
                 <input type="checkbox" checked={gray} onChange={(event) => setGray(event.target.checked)} />
               </label>
               <label className="range-line">
@@ -438,18 +406,18 @@ export default function Page() {
             </div>
 
             <button className="generate-btn" onClick={() => generate(8)}>
-              Generate 8 rekomendasi
+              Buat 8 rekomendasi
             </button>
           </aside>
 
           <section className="stage">
             <div className="stage-head">
               <div>
-                <span className="block-label">Preview</span>
+                <span className="block-label">Pratinjau</span>
                 <h2>{categoryInfo.label}</h2>
               </div>
               <div className="chips">
-                <span>{active?.source || "smart"}</span>
+                <span>{SOURCES[active?.source]?.label || "Otomatis"}</span>
                 <span>{active?.width || width}x{active?.height || height}</span>
                 <span>{resolvedQuery}</span>
               </div>
@@ -460,7 +428,7 @@ export default function Page() {
                 <img
                   key={active.url}
                   src={active.url}
-                  alt={`${categoryInfo.label} generated image`}
+                  alt={`Gambar hasil kategori ${categoryInfo.label}`}
                   onLoad={onMainLoad}
                   onError={() => {
                     setLoading(false);
@@ -468,20 +436,20 @@ export default function Page() {
                   }}
                 />
               )}
-              {!active && <div className="empty-state">Generate untuk mulai</div>}
+              {!active && <div className="empty-state">Klik buat rekomendasi untuk mulai</div>}
               {loading && <div className="loading-layer"><span /></div>}
             </div>
 
             <div className="action-row">
               <input readOnly value={active?.url || ""} placeholder="URL gambar muncul di sini" />
-              <button onClick={copyUrl} disabled={!active}>Copy</button>
-              <button onClick={download} disabled={!active}>Download</button>
+              <button onClick={copyUrl} disabled={!active}>Salin</button>
+              <button onClick={download} disabled={!active}>Unduh</button>
             </div>
 
             <div className="recommend-panel">
               <div className="panel-head">
                 <span>Rekomendasi satu tema</span>
-                <small>{items.length} gambar dari intent yang sama</small>
+                <small>{items.length} gambar dari tema yang sama</small>
               </div>
               <div className="recommend-grid">
                 {items.map((item) => (
@@ -491,7 +459,7 @@ export default function Page() {
                     onClick={() => selectItem(item)}
                   >
                     <img src={item.url} alt="" loading="lazy" />
-                    <span>{item.source}</span>
+                    <span>{SOURCES[item.source]?.label || item.source}</span>
                   </button>
                 ))}
               </div>
@@ -499,16 +467,16 @@ export default function Page() {
 
             <div className="history-panel">
               <div className="panel-head">
-                <span>History</span>
+                <span>Riwayat</span>
                 <button onClick={() => {
                   setHistory([]);
                   try { localStorage.removeItem("angen-history"); } catch {}
                 }}>
-                  Clear
+                  Hapus
                 </button>
               </div>
               {history.length === 0 ? (
-                <p className="history-empty">Belum ada history.</p>
+                <p className="history-empty">Belum ada riwayat.</p>
               ) : (
                 <div className="history-grid">
                   {history.map((item) => (
@@ -524,8 +492,8 @@ export default function Page() {
       </main>
 
       <footer className="footer">
-        <span>ANGEN uses no-key free image URLs: LoremFlickr, Picsum, Placehold.</span>
-        <span>Built for fast previews and non-monotone recommendations.</span>
+        <span>ANGEN memakai sumber gambar gratis tanpa API key: LoremFlickr, Picsum, dan Placehold.</span>
+        <span>Dibuat agar mudah dipakai pemula di HP maupun laptop.</span>
       </footer>
 
       <div className={`toast${toast ? " show" : ""}`}>{toast}</div>
