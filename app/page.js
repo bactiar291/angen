@@ -1,404 +1,534 @@
 "use client";
-import { useState, useRef, useCallback, useEffect } from "react";
 
-// ── KATEGORI dengan seed Picsum yang sudah dikurasi manual ──
-// Setiap ID dipastikan sesuai tema kategorinya
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 const CATEGORIES = {
+  tanaman: {
+    label: "Tanaman",
+    short: "Plant",
+    query: "plants,botanical,leaves,flower,garden",
+    tone: "#5fc98a",
+  },
   alam: {
-    label: "Alam", icon: "🌿",
-    seeds: [15,17,28,39,63,82,107,119,133,137,143,150,152,163,166,176,179,184,188,190,
-            196,211,215,216,217,219,225,229,232,236,237,238,240,241,242,243,244,245,246,247]
+    label: "Alam",
+    short: "Nature",
+    query: "nature,mountain,forest,river,landscape",
+    tone: "#72b7f2",
+  },
+  pantai: {
+    label: "Pantai",
+    short: "Beach",
+    query: "beach,ocean,coast,tropical,sea",
+    tone: "#66d9d9",
   },
   kota: {
-    label: "Kota", icon: "🏙️",
-    seeds: [1,6,11,20,31,36,42,53,57,62,74,78,91,100,111,124,130,142,148,155,
-            161,172,183,195,200,210,220,230,250,260,270,280,290,300,310,320,330,340,350,360]
+    label: "Kota",
+    short: "Urban",
+    query: "city,street,skyline,urban,night",
+    tone: "#c9a84c",
   },
   arsitektur: {
-    label: "Arsitektur", icon: "🏛️",
-    seeds: [2,8,16,22,33,44,55,66,77,88,99,110,121,132,143,154,165,176,187,198,
-            209,220,231,242,253,264,275,286,297,308,319,330,341,352,363,374,385,396,407,418]
+    label: "Arsitektur",
+    short: "Architecture",
+    query: "architecture,building,interior,modern,facade",
+    tone: "#d7b98a",
   },
   teknologi: {
-    label: "Teknologi", icon: "💻",
-    seeds: [3,9,18,27,38,48,59,69,80,90,101,112,123,134,145,156,167,178,189,199,
-            208,218,228,238,248,258,268,278,288,298,308,318,328,338,348,358,368,378,388,398]
-  },
-  abstrak: {
-    label: "Abstrak", icon: "🎨",
-    seeds: [4,10,19,29,40,50,61,71,83,93,104,115,126,137,148,159,170,181,192,202,
-            213,224,235,246,257,268,279,290,301,312,323,334,345,356,367,378,389,400,411,422]
-  },
-  hewan: {
-    label: "Hewan", icon: "🐾",
-    seeds: [5,12,21,30,41,52,64,75,86,97,108,120,131,142,153,164,175,186,197,207,
-            214,222,233,244,255,266,277,288,299,310,321,332,343,354,365,376,387,398,409,420]
-  },
-  travel: {
-    label: "Travel", icon: "✈️",
-    seeds: [7,14,23,32,43,54,65,76,87,98,109,122,133,144,155,166,177,188,198,206,
-            212,221,231,241,251,261,271,281,291,301,311,321,331,341,351,361,371,381,391,401]
-  },
-  orang: {
-    label: "Orang", icon: "👤",
-    seeds: [13,24,35,46,58,70,81,92,103,114,125,136,147,158,169,180,191,201,204,
-            215,226,237,248,259,270,281,292,303,314,325,336,347,358,369,380,391,402,413,424]
+    label: "Teknologi",
+    short: "Tech",
+    query: "technology,computer,circuit,server,workspace",
+    tone: "#8aa7ff",
   },
   makanan: {
-    label: "Makanan", icon: "🍽️",
-    seeds: [25,37,49,60,72,84,95,106,117,128,139,150,161,172,183,194,205,211,
-            223,234,245,256,267,278,289,300,311,322,333,344,355,366,377,388,399,410,421,432,443,454]
+    label: "Makanan",
+    short: "Food",
+    query: "food,restaurant,dessert,coffee,cooking",
+    tone: "#f1a24f",
+  },
+  hewan: {
+    label: "Hewan",
+    short: "Animal",
+    query: "animal,wildlife,bird,cat,dog",
+    tone: "#d7a05f",
+  },
+  orang: {
+    label: "Orang",
+    short: "People",
+    query: "people,portrait,person,profile,human",
+    tone: "#d48abf",
+  },
+  travel: {
+    label: "Travel",
+    short: "Travel",
+    query: "travel,landmark,road,adventure,tourism",
+    tone: "#f0d080",
   },
   bisnis: {
-    label: "Bisnis", icon: "💼",
-    seeds: [26,34,45,56,67,79,89,102,113,124,135,146,157,168,179,190,203,
-            216,227,238,249,260,271,282,293,304,315,326,337,348,359,370,381,392,403,414,425,436,447,458]
+    label: "Bisnis",
+    short: "Business",
+    query: "business,office,meeting,laptop,team",
+    tone: "#b7c1d6",
   },
-  fashion: {
-    label: "Fashion", icon: "👗",
-    seeds: [36,47,68,85,96,118,129,140,151,162,173,184,195,
-            217,228,239,250,261,272,283,294,305,316,327,338,349,360,371,382,393,404,415,426,437,448,459,470,481,492,503,514]
+  abstrak: {
+    label: "Abstrak",
+    short: "Abstract",
+    query: "abstract,texture,pattern,color,art",
+    tone: "#b98cff",
   },
   acak: {
-    label: "Acak", icon: "🎲",
-    seeds: [] // generate random
+    label: "Acak",
+    short: "Random",
+    query: "",
+    tone: "#c9a84c",
+  },
+};
+
+const SOURCES = {
+  smart: {
+    label: "Smart Match",
+    desc: "Kategori spesifik pakai image semantic. Acak/abstrak boleh editorial.",
+  },
+  semantic: {
+    label: "Flickr Semantic",
+    desc: "No API key. Query cocok kategori, bagus untuk tanaman/hewan/makanan.",
+  },
+  picsum: {
+    label: "Picsum Editorial",
+    desc: "No API key. Aesthetic random, cocok wallpaper/acak.",
+  },
+  poster: {
+    label: "Poster Placeholder",
+    desc: "No API key. Fallback stabil berbasis teks dan warna.",
   },
 };
 
 const PRESETS = [
-  { name: "HD 1080p", w: 1920, h: 1080 },
-  { name: "HD 720p",  w: 1280, h: 720  },
-  { name: "Square",   w: 800,  h: 800  },
-  { name: "Portrait", w: 600,  h: 900  },
-  { name: "Banner",   w: 1200, h: 400  },
-  { name: "Tablet",   w: 1024, h: 768  },
-  { name: "Standard", w: 800,  h: 600  },
-  { name: "Icon",     w: 256,  h: 256  },
+  { name: "Desktop", w: 1920, h: 1080 },
+  { name: "Laptop", w: 1440, h: 900 },
+  { name: "Square", w: 1080, h: 1080 },
+  { name: "Story", w: 1080, h: 1920 },
+  { name: "Banner", w: 1600, h: 600 },
+  { name: "Card", w: 1200, h: 800 },
 ];
 
-function getRandSeed(cat) {
-  if (cat === "acak" || CATEGORIES[cat].seeds.length === 0) {
-    return Math.floor(Math.random() * 1000) + 1;
+const QUERY_MAP = {
+  tanaman: "plants,botanical,leaves,flower,garden",
+  tumbuhan: "plants,botanical,leaves,flower,garden",
+  bunga: "flower,bloom,botanical,garden",
+  daun: "leaves,green,botanical,plant",
+  pohon: "tree,forest,wood,nature",
+  mobil: "car,automotive,vehicle,road",
+  motor: "motorcycle,bike,road,vehicle",
+  rumah: "house,home,interior,architecture",
+  pantai: "beach,ocean,coast,tropical",
+  gunung: "mountain,landscape,nature,peak",
+  kucing: "cat,kitten,pet,animal",
+  anjing: "dog,puppy,pet,animal",
+  makanan: "food,restaurant,cooking,dessert",
+  kopi: "coffee,cup,cafe,drink",
+  kantor: "office,workspace,business,laptop",
+  laptop: "laptop,computer,desk,technology",
+  kota: "city,urban,street,skyline",
+};
+
+function randomSeed() {
+  return Math.floor(Math.random() * 999999) + 1;
+}
+
+function clampSize(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(160, Math.min(2400, Math.round(n)));
+}
+
+function slugify(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function encodeTags(query) {
+  return query
+    .split(",")
+    .map((item) => encodeURIComponent(item.trim().replace(/\s+/g, "-")))
+    .filter(Boolean)
+    .join(",");
+}
+
+function resolveQuery(category, customQuery) {
+  const raw = customQuery.trim().toLowerCase();
+  if (raw) return QUERY_MAP[raw] || raw.split(/[,\s]+/).filter(Boolean).join(",");
+  if (category === "acak") {
+    const keys = Object.keys(CATEGORIES).filter((key) => key !== "acak" && key !== "abstrak");
+    return CATEGORIES[keys[Math.floor(Math.random() * keys.length)]].query;
   }
-  const seeds = CATEGORIES[cat].seeds;
-  return seeds[Math.floor(Math.random() * seeds.length)];
+  return CATEGORIES[category]?.query || CATEGORIES.alam.query;
 }
 
-function buildUrl(seed, w, h, blur, gray) {
-  let url = `https://picsum.photos/seed/${seed}/${w}/${h}`;
-  const p = [];
-  if (blur > 0) p.push(`blur=${blur}`);
-  if (gray) p.push("grayscale");
-  if (p.length) url += "?" + p.join("&");
-  return url;
+function resolveSource(sourceMode, category, seed) {
+  if (sourceMode !== "smart") return sourceMode;
+  if (category === "acak" || category === "abstrak") {
+    return seed % 3 === 0 ? "picsum" : "semantic";
+  }
+  return "semantic";
 }
 
-function fmtNum(n) { return n.toLocaleString("id-ID"); }
+function buildUrl({ sourceMode, category, customQuery, width, height, seed, gray, blur }) {
+  const source = resolveSource(sourceMode, category, seed);
+  const w = clampSize(width, 1280);
+  const h = clampSize(height, 720);
+  const query = resolveQuery(category, customQuery);
+
+  if (source === "semantic") {
+    return `https://loremflickr.com/${w}/${h}/${encodeTags(query)}?lock=${seed}`;
+  }
+
+  if (source === "picsum") {
+    const params = [];
+    if (gray) params.push("grayscale");
+    if (blur > 0) params.push(`blur=${blur}`);
+    return `https://picsum.photos/seed/${seed}/${w}/${h}${params.length ? `?${params.join("&")}` : ""}`;
+  }
+
+  const label = encodeURIComponent((customQuery.trim() || CATEGORIES[category]?.label || "Image").toUpperCase());
+  const tone = (CATEGORIES[category]?.tone || "#c9a84c").replace("#", "");
+  return `https://placehold.co/${w}x${h}/080808/${tone}/png?text=${label}`;
+}
+
+function fmt(n) {
+  return Number(n).toLocaleString("id-ID");
+}
 
 export default function Page() {
-  const [cat, setCat] = useState("alam");
-  const [width, setWidth] = useState(1280);
-  const [height, setHeight] = useState(720);
-  const [blur, setBlur] = useState(0);
+  const [category, setCategory] = useState("tanaman");
+  const [sourceMode, setSourceMode] = useState("smart");
+  const [customQuery, setCustomQuery] = useState("");
+  const [width, setWidth] = useState(1440);
+  const [height, setHeight] = useState(900);
   const [gray, setGray] = useState(false);
-  const [seed, setSeed] = useState(null);
-  const [imgUrl, setImgUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [blur, setBlur] = useState(0);
+  const [active, setActive] = useState(null);
+  const [items, setItems] = useState([]);
   const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
-  const [toast, setToast] = useState({ show: false, msg: "", color: "#c9a84c" });
+  const [toast, setToast] = useState("");
+  const toastRef = useRef(null);
 
-  const imgRef = useRef(null);
-  const toastTimer = useRef(null);
+  const categoryInfo = CATEGORIES[category] || CATEGORIES.tanaman;
+  const resolvedQuery = useMemo(
+    () => resolveQuery(category, customQuery),
+    [category, customQuery],
+  );
 
-  const showToast = useCallback((msg, color = "#c9a84c") => {
-    clearTimeout(toastTimer.current);
-    setToast({ show: true, msg, color });
-    toastTimer.current = setTimeout(() => setToast(t => ({ ...t, show: false })), 2800);
+  const showToast = useCallback((message) => {
+    clearTimeout(toastRef.current);
+    setToast(message);
+    toastRef.current = setTimeout(() => setToast(""), 2400);
   }, []);
 
-  const generate = useCallback((overrideCat) => {
-    const useCat = overrideCat ?? cat;
-    const newSeed = getRandSeed(useCat);
-    const url = buildUrl(newSeed, width, height, blur, gray);
-    setSeed(newSeed);
-    setImgUrl(url);
-    setLoading(true);
-    setLoaded(false);
-    setTotal(t => t + 1);
-    showToast(`🎲 ${CATEGORIES[useCat].label} — seed #${newSeed}`, "#c9a84c");
-  }, [cat, width, height, blur, gray, showToast]);
+  const makeItem = useCallback((seed) => {
+    const url = buildUrl({
+      sourceMode,
+      category,
+      customQuery,
+      width,
+      height,
+      seed,
+      gray,
+      blur,
+    });
+    return {
+      id: `${seed}-${category}-${sourceMode}-${width}x${height}`,
+      url,
+      seed,
+      category,
+      source: resolveSource(sourceMode, category, seed),
+      query: resolveQuery(category, customQuery),
+      width,
+      height,
+    };
+  }, [blur, category, customQuery, gray, height, sourceMode, width]);
 
-  const applyFilter = useCallback(() => {
-    if (!seed) return;
-    const url = buildUrl(seed, width, height, blur, gray);
-    setImgUrl(url);
+  const generate = useCallback((count = 8) => {
+    const next = Array.from({ length: count }, () => makeItem(randomSeed()));
+    setItems(next);
+    setActive(next[0]);
     setLoading(true);
-    setLoaded(false);
-    showToast("✨ Filter diterapkan", "#c9a84c");
-  }, [seed, width, height, blur, gray, showToast]);
+    setTotal((value) => value + count);
+    showToast(`${CATEGORIES[category]?.label || "Gambar"}: ${count} rekomendasi baru`);
+  }, [category, makeItem, showToast]);
 
-  const onImgLoad = useCallback(() => {
+  const selectItem = useCallback((item) => {
+    setActive(item);
+    setLoading(true);
+  }, []);
+
+  const onMainLoad = useCallback(() => {
     setLoading(false);
-    setLoaded(true);
-    setHistory(h => {
-      const entry = { url: imgUrl, seed, cat, w: width, h: height };
-      const next = [entry, ...h.filter(x => x.url !== imgUrl)].slice(0, 24);
+    if (!active) return;
+    setHistory((prev) => {
+      const next = [active, ...prev.filter((item) => item.url !== active.url)].slice(0, 30);
+      try { localStorage.setItem("angen-history", JSON.stringify(next)); } catch {}
       return next;
     });
-  }, [imgUrl, seed, cat, width, height]);
+  }, [active]);
 
-  const loadFromHist = useCallback((item) => {
-    setSeed(item.seed);
-    setCat(item.cat);
-    setWidth(item.w);
-    setHeight(item.h);
-    setImgUrl(item.url);
-    setLoading(true);
-    setLoaded(false);
-    showToast("📜 Dimuat dari riwayat", "#c9a84c");
-  }, [showToast]);
+  const copyUrl = useCallback(async () => {
+    if (!active?.url) return;
+    try {
+      await navigator.clipboard.writeText(active.url);
+      showToast("URL tersalin");
+    } catch {
+      showToast("Clipboard gagal");
+    }
+  }, [active, showToast]);
 
   const download = useCallback(async () => {
-    if (!imgUrl) return;
+    if (!active?.url) return;
     try {
-      showToast("⬇️ Mengunduh...", "#4caf82");
-      const res = await fetch(imgUrl);
+      const res = await fetch(active.url);
+      if (!res.ok) throw new Error("download");
       const blob = await res.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `anambactiar_${seed}_${width}x${height}.jpg`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      showToast("✅ Berhasil diunduh!", "#4caf82");
-    } catch { showToast("❌ Gagal mengunduh", "#cf5252"); }
-  }, [imgUrl, seed, width, height, showToast]);
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `angen-${slugify(categoryInfo.label)}-${active.seed}-${active.width}x${active.height}.jpg`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      showToast("Download dimulai");
+    } catch {
+      window.open(active.url, "_blank", "noopener,noreferrer");
+      showToast("Dibuka di tab baru");
+    }
+  }, [active, categoryInfo.label, showToast]);
 
-  const copyUrl = useCallback(() => {
-    if (!imgUrl) return;
-    navigator.clipboard.writeText(imgUrl).then(() => {
-      showToast("📋 URL tersalin!", "#c9a84c");
-    });
-  }, [imgUrl, showToast]);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("angen-history") || "[]");
+      if (Array.isArray(stored)) setHistory(stored.slice(0, 30));
+    } catch {}
+  }, []);
 
-  // Slider pct for CSS gradient
-  const wPct = ((width - 100) / 1900 * 100).toFixed(1);
-  const hPct = ((height - 100) / 1900 * 100).toFixed(1);
-  const bPct = (blur / 10 * 100).toFixed(1);
+  useEffect(() => {
+    generate(8);
+  }, []); // initial studio render
 
   return (
-    <>
-      {/* HEADER */}
-      <header className="header">
-        <span className="logo">ANAM <span>BACTIAR</span></span>
-        <div className="header-right">
-          <span className="status-dot">Picsum Online</span>
-          <span className="header-pill">Image Generator</span>
+    <div className="shell">
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-mark">AG</span>
+          <div>
+            <strong>ANGEN</strong>
+            <span>Free Image Studio</span>
+          </div>
+        </div>
+        <div className="topbar-meta">
+          <span>No API key</span>
+          <span>Smart semantic source</span>
+          <span>{fmt(total)} generated</span>
         </div>
       </header>
 
-      <div className="app">
-        {/* ── SIDEBAR ── */}
-        <aside className="sidebar">
-
-          {/* Kategori */}
-          <div className="section-label">Kategori</div>
-          <div className="cat-grid">
-            {Object.entries(CATEGORIES).map(([key, val]) => (
-              <button
-                key={key}
-                className={`cat-btn${cat === key ? " active" : ""}`}
-                onClick={() => { setCat(key); showToast(`${val.icon} ${val.label} dipilih`); }}
-              >
-                <span className="cat-icon">{val.icon}</span>
-                <span>{val.label}</span>
-              </button>
-            ))}
+      <main className="studio">
+        <section className="hero-panel">
+          <div className="hero-copy">
+            <span className="eyebrow">Semantic random image generator</span>
+            <h1>Gambar acak, tapi tetap sesuai maumu.</h1>
+            <p>
+              Pilih kategori atau ketik kata sendiri. Untuk tanaman, hasilnya
+              tanaman. Untuk makanan, hasilnya makanan. Source gratis dirotasi
+              tanpa API key.
+            </p>
           </div>
-
-          {/* Ukuran */}
-          <div className="section-label">Dimensi</div>
-
-          <div className="slider-row">
-            <div className="slider-top">
-              <span className="slider-name">Lebar</span>
-              <span className="slider-val">{width}px</span>
-            </div>
-            <input type="range" min="100" max="2000" step="10" value={width}
-              style={{"--pct": `${wPct}%`}}
-              onChange={e => setWidth(+e.target.value)} />
+          <div className="source-card">
+            <span>Active Source</span>
+            <strong>{SOURCES[sourceMode].label}</strong>
+            <p>{SOURCES[sourceMode].desc}</p>
           </div>
+        </section>
 
-          <div className="slider-row">
-            <div className="slider-top">
-              <span className="slider-name">Tinggi</span>
-              <span className="slider-val">{height}px</span>
-            </div>
-            <input type="range" min="100" max="2000" step="10" value={height}
-              style={{"--pct": `${hPct}%`}}
-              onChange={e => setHeight(+e.target.value)} />
-          </div>
-
-          {/* Filter */}
-          <div className="section-label">Filter</div>
-
-          <div className="slider-row">
-            <div className="slider-top">
-              <span className="slider-name">Blur</span>
-              <span className="slider-val">{blur}</span>
-            </div>
-            <input type="range" min="0" max="10" step="1" value={blur}
-              style={{"--pct": `${bPct}%`}}
-              onChange={e => setBlur(+e.target.value)} />
-          </div>
-
-          <div className="toggle-row">
-            <span className="toggle-label">Grayscale</span>
-            <label className="toggle">
-              <input type="checkbox" checked={gray} onChange={e => setGray(e.target.checked)} />
-              <div className="toggle-track" />
-              <div className="toggle-thumb" />
-            </label>
-          </div>
-
-          {/* Preset ukuran */}
-          <div className="section-label">Ukuran Cepat</div>
-          <div className="preset-list">
-            {PRESETS.map(p => (
-              <button key={p.name} className="preset-btn"
-                onClick={() => {
-                  setWidth(p.w); setHeight(p.h);
-                  showToast(`📐 ${p.name}: ${p.w}×${p.h}`);
-                }}>
-                <span className="preset-name">{p.name}</span>
-                <span className="preset-dim">{p.w}×{p.h}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Tombol aksi */}
-          <div className="sidebar-actions">
-            <button className="btn-generate" onClick={() => generate()}>
-              ✦ GENERATE GAMBAR ✦
-            </button>
-            <button className="btn-apply" onClick={applyFilter}>
-              Terapkan Filter
-            </button>
-          </div>
-
-          {/* Stats */}
-          <div className="stats-strip">
-            <div className="stat-cell">
-              <span className="stat-num">{fmtNum(total)}</span>
-              <span className="stat-lbl">Generated</span>
-            </div>
-            <div className="stat-cell">
-              <span className="stat-num">{seed ?? "—"}</span>
-              <span className="stat-lbl">Seed</span>
-            </div>
-            <div className="stat-cell">
-              <span className="stat-num">∞</span>
-              <span className="stat-lbl">Gratis</span>
-            </div>
-          </div>
-
-        </aside>
-
-        {/* ── MAIN ── */}
-        <div className="main">
-
-          {/* Image card */}
-          <div className="img-card">
-            <div className="img-card-header">
-              <div className="img-card-title">
-                <div className="dot" />
-                HASIL GENERATE
-              </div>
-              <div className="img-meta">
-                <span className="meta-tag">{width}×{height}</span>
-                <span className="meta-tag">{CATEGORIES[cat]?.icon} {CATEGORIES[cat]?.label}</span>
-                {gray && <span className="meta-tag">GRAY</span>}
-                {blur > 0 && <span className="meta-tag">BLUR {blur}</span>}
-              </div>
+        <section className="workspace">
+          <aside className="control">
+            <div className="control-block">
+              <span className="block-label">Intent</span>
+              <input
+                className="query-input"
+                value={customQuery}
+                onChange={(event) => setCustomQuery(event.target.value)}
+                placeholder="contoh: tanaman, bunga, laptop, pantai"
+              />
             </div>
 
-            <div className="img-wrapper">
-              {!loaded && !loading && (
-                <div className="img-placeholder">
-                  <svg className="placeholder-icon" viewBox="0 0 64 64" fill="none" stroke="#c9a84c" strokeWidth="1.5">
-                    <rect x="6" y="14" width="52" height="36" rx="4"/>
-                    <circle cx="22" cy="28" r="5"/>
-                    <path d="M6 38l16-14 12 12 10-8 14 10"/>
-                  </svg>
-                  <span className="placeholder-text">Tekan GENERATE untuk mulai</span>
-                </div>
-              )}
-
-              {imgUrl && (
-                <img
-                  ref={imgRef}
-                  src={imgUrl}
-                  alt="Generated"
-                  style={{ opacity: loaded ? 1 : 0 }}
-                  onLoad={onImgLoad}
-                  onError={() => { setLoading(false); showToast("❌ Gagal memuat gambar", "#cf5252"); }}
-                />
-              )}
-
-              <div className={`img-loading${loading ? " active" : ""}`}>
-                <div className="spinner" />
-              </div>
-            </div>
-
-            <div className="img-card-footer">
-              <input className="url-field" readOnly value={imgUrl}
-                placeholder="URL akan muncul setelah generate..." />
-              <button className="btn-copy" onClick={copyUrl}>Salin URL</button>
-              <button className="btn-download" onClick={download} disabled={!loaded}>
-                ↓ Download
-              </button>
-            </div>
-          </div>
-
-          {/* History */}
-          <div className="history-card">
-            <div className="history-head">
-              <span className="history-title">RIWAYAT</span>
-              <button className="btn-clear"
-                onClick={() => { setHistory([]); showToast("🗑️ Riwayat dihapus"); }}>
-                Hapus Semua
-              </button>
-            </div>
-
-            {history.length === 0 ? (
-              <div className="history-empty">Belum ada gambar yang digenerate</div>
-            ) : (
-              <div className="history-grid">
-                {history.map((item, i) => (
-                  <div key={i} className="hist-item" onClick={() => loadFromHist(item)}>
-                    <img src={item.url} alt="" loading="lazy" />
-                    <div className="hist-hover">Muat Ulang</div>
-                  </div>
+            <div className="control-block">
+              <span className="block-label">Kategori</span>
+              <div className="category-grid">
+                {Object.entries(CATEGORIES).map(([key, item]) => (
+                  <button
+                    key={key}
+                    className={`category-btn${category === key ? " active" : ""}`}
+                    style={{ "--tone": item.tone }}
+                    onClick={() => {
+                      setCategory(key);
+                      showToast(`${item.label} dipilih`);
+                    }}
+                  >
+                    <strong>{item.short}</strong>
+                    <span>{item.label}</span>
+                  </button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
 
-        </div>
-      </div>
+            <div className="control-block">
+              <span className="block-label">Free Source</span>
+              <div className="source-grid">
+                {Object.entries(SOURCES).map(([key, item]) => (
+                  <button
+                    key={key}
+                    className={`source-btn${sourceMode === key ? " active" : ""}`}
+                    onClick={() => setSourceMode(key)}
+                  >
+                    <strong>{item.label}</strong>
+                    <span>{item.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-      {/* FOOTER */}
+            <div className="control-block">
+              <span className="block-label">Dimensi</span>
+              <div className="dimension-row">
+                <label>
+                  <span>Width</span>
+                  <input value={width} onChange={(event) => setWidth(clampSize(event.target.value, 1440))} />
+                </label>
+                <label>
+                  <span>Height</span>
+                  <input value={height} onChange={(event) => setHeight(clampSize(event.target.value, 900))} />
+                </label>
+              </div>
+              <div className="preset-row">
+                {PRESETS.map((preset) => (
+                  <button
+                    key={preset.name}
+                    onClick={() => {
+                      setWidth(preset.w);
+                      setHeight(preset.h);
+                    }}
+                  >
+                    {preset.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="control-block fx-block">
+              <span className="block-label">Picsum FX</span>
+              <label className="toggle-line">
+                <span>Grayscale</span>
+                <input type="checkbox" checked={gray} onChange={(event) => setGray(event.target.checked)} />
+              </label>
+              <label className="range-line">
+                <span>Blur {blur}</span>
+                <input type="range" min="0" max="10" value={blur} onChange={(event) => setBlur(Number(event.target.value))} />
+              </label>
+            </div>
+
+            <button className="generate-btn" onClick={() => generate(8)}>
+              Generate 8 rekomendasi
+            </button>
+          </aside>
+
+          <section className="stage">
+            <div className="stage-head">
+              <div>
+                <span className="block-label">Preview</span>
+                <h2>{categoryInfo.label}</h2>
+              </div>
+              <div className="chips">
+                <span>{active?.source || "smart"}</span>
+                <span>{active?.width || width}x{active?.height || height}</span>
+                <span>{resolvedQuery}</span>
+              </div>
+            </div>
+
+            <div className="image-frame" style={{ "--tone": categoryInfo.tone }}>
+              {active && (
+                <img
+                  key={active.url}
+                  src={active.url}
+                  alt={`${categoryInfo.label} generated image`}
+                  onLoad={onMainLoad}
+                  onError={() => {
+                    setLoading(false);
+                    showToast("Source gagal, coba generate lagi");
+                  }}
+                />
+              )}
+              {!active && <div className="empty-state">Generate untuk mulai</div>}
+              {loading && <div className="loading-layer"><span /></div>}
+            </div>
+
+            <div className="action-row">
+              <input readOnly value={active?.url || ""} placeholder="URL gambar muncul di sini" />
+              <button onClick={copyUrl} disabled={!active}>Copy</button>
+              <button onClick={download} disabled={!active}>Download</button>
+            </div>
+
+            <div className="recommend-panel">
+              <div className="panel-head">
+                <span>Rekomendasi satu tema</span>
+                <small>{items.length} gambar dari intent yang sama</small>
+              </div>
+              <div className="recommend-grid">
+                {items.map((item) => (
+                  <button
+                    key={item.id}
+                    className={active?.url === item.url ? "active" : ""}
+                    onClick={() => selectItem(item)}
+                  >
+                    <img src={item.url} alt="" loading="lazy" />
+                    <span>{item.source}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="history-panel">
+              <div className="panel-head">
+                <span>History</span>
+                <button onClick={() => {
+                  setHistory([]);
+                  try { localStorage.removeItem("angen-history"); } catch {}
+                }}>
+                  Clear
+                </button>
+              </div>
+              {history.length === 0 ? (
+                <p className="history-empty">Belum ada history.</p>
+              ) : (
+                <div className="history-grid">
+                  {history.map((item) => (
+                    <button key={item.url} onClick={() => selectItem(item)}>
+                      <img src={item.url} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        </section>
+      </main>
+
       <footer className="footer">
-        <span className="footer-text">© 2025 Anam Bactiar — Image Generator · Powered by Picsum Photos</span>
-        <span className="footer-tag">100% Free · Unlimited</span>
+        <span>ANGEN uses no-key free image URLs: LoremFlickr, Picsum, Placehold.</span>
+        <span>Built for fast previews and non-monotone recommendations.</span>
       </footer>
 
-      {/* TOAST */}
-      <div className={`toast${toast.show ? " show" : ""}`}>
-        <div className="toast-dot" style={{ background: toast.color }} />
-        {toast.msg}
-      </div>
-    </>
+      <div className={`toast${toast ? " show" : ""}`}>{toast}</div>
+    </div>
   );
 }

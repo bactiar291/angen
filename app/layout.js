@@ -1,8 +1,14 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "ANAM BACTIAR — Image Generator",
-  description: "Generate gambar berkualitas tinggi, gratis, unlimited",
+  applicationName: "ANGEN Free Image Studio",
+  title: "ANGEN — Free Image Studio",
+  description: "No-key free image generator with semantic categories, smart source rotation, and lightweight 3D UI.",
+  referrer: "strict-origin-when-cross-origin",
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({ children }) {
