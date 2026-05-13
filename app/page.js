@@ -413,7 +413,7 @@ export default function Page() {
             <h1>Gambar liar, tajam, dan langsung siap pakai.</h1>
             <p>
               Pilih tema, orientasi, dan efek. ANGEN merakit visual gratis
-              dengan warna elektrik, frame keras, dan motion 3D hidup.
+              dengan aksen cyber matte, frame keras, dan motion 3D hidup.
             </p>
           </div>
           <div className="source-card">
