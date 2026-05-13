@@ -1,9 +1,9 @@
 import "./globals.css";
 
 export const metadata = {
-  applicationName: "ANGEN Free Image Studio",
-  title: "ANGEN — Free Image Studio",
-  description: "No-key free image generator with semantic categories, smart source rotation, and lightweight 3D UI.",
+  applicationName: "ANGEN Cyberphunk Image Studio",
+  title: "ANGEN Cyberphunk Image Studio",
+  description: "No-key image studio with neobrutalist cyberphunk UI, responsive orientation, and scroll-reactive 3D motion.",
   referrer: "strict-origin-when-cross-origin",
   robots: {
     index: true,

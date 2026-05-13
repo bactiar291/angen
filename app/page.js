@@ -99,8 +99,9 @@ const SOURCES = {
 };
 
 const ORIENTATIONS = [
-  { id: "horizontal", label: "Horizontal", desc: "Cocok untuk laptop, banner, dan desktop.", w: 1440, h: 900 },
-  { id: "vertical", label: "Vertikal", desc: "Cocok untuk HP, story, poster, dan konten mobile.", w: 900, h: 1440 },
+  { id: "auto", label: "Adaptif", desc: "Ikuti layar HP atau web saat ini.", w: 0, h: 0 },
+  { id: "horizontal", label: "Horizontal", desc: "Banner, laptop, desktop, dan dashboard.", w: 1440, h: 900 },
+  { id: "vertical", label: "Vertikal", desc: "HP, story, poster, dan konten mobile.", w: 900, h: 1440 },
 ];
 
 const QUERY_MAP = {
@@ -195,10 +196,22 @@ function fmt(n) {
   return Number(n).toLocaleString("id-ID");
 }
 
+function readViewport() {
+  if (typeof window === "undefined") return { width: 1440, height: 900 };
+  return { width: window.innerWidth, height: window.innerHeight };
+}
+
+function resolveOrientation(id, viewport) {
+  const horizontal = ORIENTATIONS.find((item) => item.id === "horizontal");
+  const vertical = ORIENTATIONS.find((item) => item.id === "vertical");
+  if (id === "auto") return viewport.height > viewport.width ? vertical : horizontal;
+  return ORIENTATIONS.find((item) => item.id === id) || horizontal;
+}
+
 export default function Page() {
   const [category, setCategory] = useState("tanaman");
   const [customQuery, setCustomQuery] = useState("");
-  const [orientation, setOrientation] = useState("horizontal");
+  const [orientation, setOrientation] = useState("auto");
   const [gray, setGray] = useState(false);
   const [blur, setBlur] = useState(0);
   const [active, setActive] = useState(null);
@@ -207,16 +220,44 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [toast, setToast] = useState("");
+  const [viewport, setViewport] = useState({ width: 1440, height: 900 });
+  const [scrollProgress, setScrollProgress] = useState(0);
   const toastRef = useRef(null);
 
   const categoryInfo = CATEGORIES[category] || CATEGORIES.tanaman;
-  const orientationInfo = ORIENTATIONS.find((item) => item.id === orientation) || ORIENTATIONS[0];
+  const orientationInfo = resolveOrientation(orientation, viewport);
   const width = orientationInfo.w;
   const height = orientationInfo.h;
+  const activeRatio = width >= height ? "landscape" : "portrait";
+  const orientationLabel = orientation === "auto" ? `Adaptif ${orientationInfo.label}` : orientationInfo.label;
   const resolvedQuery = useMemo(
     () => resolveQuery(category, customQuery),
     [category, customQuery],
   );
+  const kineticItems = useMemo(() => items.slice(0, 3), [items]);
+  const scrollVars = useMemo(() => {
+    const px = (value) => `${scrollProgress * value}px`;
+    const deg = (value) => `${scrollProgress * value}deg`;
+    return {
+      "--tone": categoryInfo.tone,
+      "--move-n46": px(-46),
+      "--move-n44": px(-44),
+      "--move-n42": px(-42),
+      "--move-n30": px(-30),
+      "--move-n24": px(-24),
+      "--move-n22": px(-22),
+      "--move-n18": px(-18),
+      "--move-n12": px(-12),
+      "--move-34": px(34),
+      "--move-48": px(48),
+      "--move-58": px(58),
+      "--move-64": px(64),
+      "--tilt-n12": deg(-12),
+      "--tilt-9": deg(9),
+      "--spin-26": deg(26),
+      "--spin-30": deg(30),
+    };
+  }, [categoryInfo.tone, scrollProgress]);
 
   const showToast = useCallback((message) => {
     clearTimeout(toastRef.current);
@@ -224,36 +265,47 @@ export default function Page() {
     toastRef.current = setTimeout(() => setToast(""), 2400);
   }, []);
 
-  const makeItem = useCallback((seed) => {
+  const makeItem = useCallback((seed, size = orientationInfo) => {
+    const itemWidth = size.w;
+    const itemHeight = size.h;
     const url = buildUrl({
       category,
       customQuery,
-      width,
-      height,
+      width: itemWidth,
+      height: itemHeight,
       seed,
       gray,
       blur,
     });
     return {
-      id: `${seed}-${category}-${orientation}-${width}x${height}`,
+      id: `${seed}-${category}-${orientation}-${itemWidth}x${itemHeight}`,
       url,
       seed,
       category,
       source: resolveSource(category, seed),
       query: resolveQuery(category, customQuery),
-      width,
-      height,
+      width: itemWidth,
+      height: itemHeight,
     };
-  }, [blur, category, customQuery, gray, height, orientation, width]);
+  }, [blur, category, customQuery, gray, orientation, orientationInfo]);
 
   const generate = useCallback((count = 8) => {
-    const next = Array.from({ length: count }, () => makeItem(randomSeed()));
+    const liveSize = resolveOrientation(orientation, readViewport());
+    const next = Array.from({ length: count }, () => makeItem(randomSeed(), liveSize));
     setItems(next);
     setActive(next[0]);
     setLoading(true);
     setTotal((value) => value + count);
     showToast(`${CATEGORIES[category]?.label || "Gambar"}: ${count} rekomendasi baru`);
-  }, [category, makeItem, showToast]);
+  }, [category, makeItem, orientation, showToast]);
+
+  const toggleOrientation = useCallback(() => {
+    setOrientation((value) => {
+      const next = value === "vertical" ? "horizontal" : "vertical";
+      showToast(next === "vertical" ? "Mode vertikal aktif" : "Mode horizontal aktif");
+      return next;
+    });
+  }, [showToast]);
 
   const selectItem = useCallback((item) => {
     setActive(item);
@@ -306,22 +358,50 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
+    const handleResize = () => setViewport(readViewport());
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    let frame = 0;
+    const handleScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const limit = Math.max(window.innerHeight * 1.35, 1);
+        setScrollProgress(Math.min(1, window.scrollY / limit));
+      });
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
     generate(8);
   }, []); // initial studio render
 
   return (
-    <div className="shell">
+    <div className="shell" style={scrollVars}>
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">AG</span>
           <div>
             <strong>ANGEN</strong>
-            <span>Studio Gambar Gratis</span>
+            <span>Neo Cyberphunk Studio</span>
           </div>
         </div>
         <div className="topbar-meta">
-          <span>Tanpa API key</span>
-          <span>Sumber otomatis</span>
+          <span>HP + Web</span>
+          <span>{orientationLabel}</span>
           <span>{fmt(total)} dibuat</span>
         </div>
       </header>
@@ -329,18 +409,35 @@ export default function Page() {
       <main className="studio">
         <section className="hero-panel">
           <div className="hero-copy">
-            <span className="eyebrow">Generator gambar gratis otomatis</span>
-            <h1>Gambar acak yang tetap sesuai pilihanmu.</h1>
+            <span className="eyebrow">Neobrutalism + Cyberphunk 3D</span>
+            <h1>Gambar liar, tajam, dan langsung siap pakai.</h1>
             <p>
-              Pilih kategori atau ketik kata sendiri. Sistem akan mencari gambar
-              yang masih satu tema, lalu memilih sumber gratis secara otomatis.
-              Cocok untuk pemula, HP, dan laptop.
+              Pilih tema, orientasi, dan efek. ANGEN merakit visual gratis
+              dengan warna elektrik, frame keras, dan motion 3D hidup.
             </p>
           </div>
           <div className="source-card">
-            <span>Sumber aktif</span>
+            <span>Core engine</span>
             <strong>Rotasi Otomatis</strong>
-            <p>Flickr Semantik, Picsum, dan Poster digabung jadi satu alur. Kamu cukup pilih tema.</p>
+            <p>Flickr Semantik, Picsum, dan Poster neon digabung dalam satu studio.</p>
+          </div>
+        </section>
+
+        <section className="motion-strip" aria-label="Tiga gambar bergerak saat scroll">
+          <div className="motion-copy">
+            <span className="block-label">Scroll Reactor</span>
+            <h2>3 gambar bergerak mengikuti scroll.</h2>
+          </div>
+          <div className="kinetic-stack">
+            {kineticItems.map((item, index) => (
+              <figure className={`kinetic-card kinetic-${index + 1}`} key={item.id}>
+                <img src={item.url} alt="" loading="lazy" />
+                <figcaption>
+                  <span>0{index + 1}</span>
+                  <strong>{CATEGORIES[item.category]?.short || "AG"}</strong>
+                </figcaption>
+              </figure>
+            ))}
           </div>
         </section>
 
@@ -377,7 +474,10 @@ export default function Page() {
             </div>
 
             <div className="control-block">
-              <span className="block-label">Bentuk gambar</span>
+              <div className="orientation-title">
+                <span className="block-label">Bentuk gambar</span>
+                <button className="mini-action" onClick={toggleOrientation}>Tukar H/V</button>
+              </div>
               <div className="orientation-grid">
                 {ORIENTATIONS.map((item) => (
                   <button
@@ -419,11 +519,12 @@ export default function Page() {
               <div className="chips">
                 <span>{SOURCES[active?.source]?.label || "Otomatis"}</span>
                 <span>{active?.width || width}x{active?.height || height}</span>
+                <span>{orientationLabel}</span>
                 <span>{resolvedQuery}</span>
               </div>
             </div>
 
-            <div className="image-frame" style={{ "--tone": categoryInfo.tone }}>
+            <div className={`image-frame ${activeRatio}`} style={{ "--tone": categoryInfo.tone }}>
               {active && (
                 <img
                   key={active.url}
@@ -442,6 +543,7 @@ export default function Page() {
 
             <div className="action-row">
               <input readOnly value={active?.url || ""} placeholder="URL gambar muncul di sini" />
+              <button onClick={() => generate(8)}>Refresh</button>
               <button onClick={copyUrl} disabled={!active}>Salin</button>
               <button onClick={download} disabled={!active}>Unduh</button>
             </div>
@@ -493,7 +595,7 @@ export default function Page() {
 
       <footer className="footer">
         <span>ANGEN memakai sumber gambar gratis tanpa API key: LoremFlickr, Picsum, dan Placehold.</span>
-        <span>Dibuat agar mudah dipakai pemula di HP maupun laptop.</span>
+        <span>Responsive untuk HP, tablet, desktop, vertikal, dan horizontal.</span>
       </footer>
 
       <div className={`toast${toast ? " show" : ""}`}>{toast}</div>
